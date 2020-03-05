@@ -1,0 +1,8 @@
+build/
+cmake-build-debug/
+/dist/
+.idea/
+.gradle/
+*.ppm
+*.mp4
+.vs/
