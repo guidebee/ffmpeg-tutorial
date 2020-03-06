@@ -1,8 +1,11 @@
 cmake_minimum_required(VERSION 3.12)
-
+if (DEFINED ENV{VCPKG_ROOT} AND NOT DEFINED CMAKE_TOOLCHAIN_FILE)
+    set(CMAKE_TOOLCHAIN_FILE "$ENV{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+            CACHE STRING "")
+endif ()
+set(CMAKE_GENERATOR "Ninja" CACHE INTERNAL "" FORCE)
+set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_DEFAULT_TRIPLET} CACHE INTERNAL "" FORCE)
 project(ffmpeg_tutorial)
-
-
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_FLAGS "-D__STDC_CONSTANT_MACROS")
@@ -53,18 +56,18 @@ set(FFMPEG_LIBRARY ${AVCODEC_LIBRARY}
 
 SET(VCPKG_ROOT_BIN_DIR ${_VCPKG_ROOT_DIR}/installed/x64-windows/bin)
 add_custom_target(copy_dlls
-        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/avcodec-58.dll       ${CMAKE_BINARY_DIR}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/avdevice-58.dll      ${CMAKE_BINARY_DIR}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/avfilter-7.dll       ${CMAKE_BINARY_DIR}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/avformat-58.dll      ${CMAKE_BINARY_DIR}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/avresample-4.dll     ${CMAKE_BINARY_DIR}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/avutil-56.dll        ${CMAKE_BINARY_DIR}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/avcodec-58.dll ${CMAKE_BINARY_DIR}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/avdevice-58.dll ${CMAKE_BINARY_DIR}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/avfilter-7.dll ${CMAKE_BINARY_DIR}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/avformat-58.dll ${CMAKE_BINARY_DIR}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/avresample-4.dll ${CMAKE_BINARY_DIR}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/avutil-56.dll ${CMAKE_BINARY_DIR}/
 
-        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/swresample-3.dll     ${CMAKE_BINARY_DIR}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/swscale-5.dll        ${CMAKE_BINARY_DIR}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/SDL2.dll             ${CMAKE_BINARY_DIR}/
-        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/SDL2.dll             ${CMAKE_BINARY_DIR}/
-)
+        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/swresample-3.dll ${CMAKE_BINARY_DIR}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/swscale-5.dll ${CMAKE_BINARY_DIR}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/SDL2.dll ${CMAKE_BINARY_DIR}/
+        COMMAND ${CMAKE_COMMAND} -E copy ${VCPKG_ROOT_BIN_DIR}/SDL2.dll ${CMAKE_BINARY_DIR}/
+        )
 
 
 function(TUTORIAL name)
@@ -72,9 +75,9 @@ function(TUTORIAL name)
     add_executable(${TUTORIAL_TARGET} ${TUTORIAL_TARGET}.cpp)
     target_include_directories(${TUTORIAL_TARGET} PRIVATE ${FFMPEG_INCLUDE_DIR})
     target_link_libraries(${TUTORIAL_TARGET} PRIVATE ${FFMPEG_LIBRARY})
-    if(WIN32)
+    if (WIN32)
         add_dependencies(${name} copy_dlls)
-    endif()
+    endif ()
 endfunction(TUTORIAL)
 
 
