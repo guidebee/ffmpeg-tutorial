@@ -1,4 +1,4 @@
-#include "tutorial.h"
+#include "tutorial.hpp"
 
 #ifdef __MINGW32__
 #undef main /* Prevents SDL from overriding main() */

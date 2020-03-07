@@ -17,7 +17,7 @@
 // to write the first five frames from "myvideofile.mpg" to disk in PPM
 // format.
 
-#include "tutorial.h"
+#include "tutorial.hpp"
 
 
 void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {

@@ -2,8 +2,8 @@
 // Created by Jing SHEN on 2/3/20.
 //
 
-#ifndef FFMPEG_TUTORIAL_TUTORIAL_H
-#define FFMPEG_TUTORIAL_TUTORIAL_H
+#ifndef FFMPEG_TUTORIAL_TUTORIAL_HPP
+#define FFMPEG_TUTORIAL_TUTORIAL_HPP
 #if defined (__cplusplus)
 extern "C" {
 #endif
@@ -16,4 +16,4 @@ extern "C" {
 #if defined (__cplusplus)
 }
 #endif
-#endif //FFMPEG_TUTORIAL_TUTORIAL_H
+#endif //FFMPEG_TUTORIAL_TUTORIAL_HPP
