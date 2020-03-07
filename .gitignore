@@ -7,3 +7,5 @@ cmake-build-debug/
 *.mp4
 .vs/
 vs2017/
+vs2019/
+xcode/
