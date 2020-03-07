@@ -40,10 +40,10 @@ target_include_directories(FFmpeg INTERFACE
         ${AVFILTER_INCLUDE_DIR}
         ${AVRESAMPLE_INCLUDE_DIR}
         ${SWRESAMPLE_INCLUDE_DIR}
-)
+        )
 
 target_link_libraries(FFmpeg INTERFACE
- ${AVCODEC_LIBRARY}
+        ${AVCODEC_LIBRARY}
         ${AVFORMAT_LIBRARY}
         ${AVUTIL_LIBRARY}
         ${AVDEVICE_LIBRARY}
@@ -51,4 +51,4 @@ target_link_libraries(FFmpeg INTERFACE
         ${AVFILTER_LIBRARY}
         ${AVRESAMPLE_LIBRARY}
         ${SWRESAMPLE_LIBRARY}
-)
+        )
