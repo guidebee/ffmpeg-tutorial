@@ -19,8 +19,10 @@ function(TUTORIAL name)
 
 endfunction(TUTORIAL)
 
-add_subdirectory(libs/FFmpeg)
-add_subdirectory(apps/tutorial01)
+add_subdirectory(libs)
+add_subdirectory(apps)
+add_subdirectory(docs)
+add_subdirectory(tests)
 
 
 
