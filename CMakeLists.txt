@@ -19,6 +19,7 @@ function(TUTORIAL name)
 
 endfunction(TUTORIAL)
 
+include_directories("include" )
 add_subdirectory(libs)
 add_subdirectory(apps)
 add_subdirectory(docs)
