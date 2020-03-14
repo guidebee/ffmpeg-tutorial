@@ -43,102 +43,116 @@ void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
 }
 
 int main(int argc, char *argv[]) {
-    AVFormatContext *pFormatCtx = NULL;
+    AVFormatContext *pFormatContext = avformat_alloc_context();;
     int i, videoStream;
-    AVCodecContext *pCodecCtx = NULL;
-    AVCodec *pCodec = NULL;
-    AVFrame *pFrame = NULL;
-    AVFrame *pFrameRGB = NULL;
+
+    AVCodec *pCodec = nullptr;
+    AVFrame *pFrame = nullptr;
+    AVFrame *pFrameRGB = nullptr;
     AVPacket packet;
     int frameFinished;
     int numBytes;
-    uint8_t *buffer = NULL;
+    uint8_t *buffer = nullptr;
 
-    AVDictionary *optionsDict = NULL;
-    struct SwsContext *sws_ctx = NULL;
+    AVDictionary *optionsDict = nullptr;
+    struct SwsContext *sws_ctx = nullptr;
 
     if (argc < 2) {
         printf("Please provide a movie file\n");
         return -1;
     }
-    // Register all formats and codecs
-    av_register_all();
+
 
     // Open video file
-    if (avformat_open_input(&pFormatCtx, argv[1], NULL, NULL) != 0)
+    if (avformat_open_input(&pFormatContext, argv[1], nullptr, nullptr) != 0)
         return -1; // Couldn't open file
 
     // Retrieve stream information
-    if (avformat_find_stream_info(pFormatCtx, NULL) < 0)
+    if (avformat_find_stream_info(pFormatContext, nullptr) < 0)
         return -1; // Couldn't find stream information
 
     // Dump information about file onto standard error
-    av_dump_format(pFormatCtx, 0, argv[1], 0);
+    av_dump_format(pFormatContext, 0, argv[1], 0);
 
     // Find the first video stream
     videoStream = -1;
-    for (i = 0; i < pFormatCtx->nb_streams; i++)
-        if (pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+    AVCodecParameters *pCodecParameters = nullptr;
+    for (i = 0; i < pFormatContext->nb_streams; i++) {
+        pCodecParameters = pFormatContext->streams[i]->codecpar;
+        if (pCodecParameters->codec_type == AVMEDIA_TYPE_VIDEO) {
             videoStream = i;
             break;
         }
+    }
     if (videoStream == -1)
         return -1; // Didn't find a video stream
 
-    // Get a pointer to the codec context for the video stream
-    pCodecCtx = pFormatCtx->streams[videoStream]->codec;
 
     // Find the decoder for the video stream
-    pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
-    if (pCodec == NULL) {
+    pCodec = avcodec_find_decoder(pCodecParameters->codec_id);
+    if (pCodec == nullptr) {
         fprintf(stderr, "Unsupported codec!\n");
         return -1; // Codec not found
     }
-    // Open codec
-    if (avcodec_open2(pCodecCtx, pCodec, &optionsDict) < 0)
-        return -1; // Could not open codec
+    AVCodecContext *pCodecContext = avcodec_alloc_context3(pCodec);
+    if (!pCodecContext) {
+        printf("failed to allocated memory for AVCodecContext");
+        return -1;
+    }
+
+    if (avcodec_parameters_to_context(pCodecContext, pCodecParameters) < 0) {
+        printf("failed to copy codec params to codec context");
+        return -1;
+    }
+
+
+    if (avcodec_open2(pCodecContext, pCodec, nullptr) < 0) {
+        printf("failed to open codec through avcodec_open2");
+        return -1;
+    }
+
 
     // Allocate video frame
     pFrame = av_frame_alloc();
 
     // Allocate an AVFrame structure
     pFrameRGB = av_frame_alloc();
-    if (pFrameRGB == NULL)
+    if (pFrameRGB == nullptr)
         return -1;
 
     // Determine required buffer size and allocate buffer
-    numBytes = avpicture_get_size(AV_PIX_FMT_RGB24, pCodecCtx->width,
-                                  pCodecCtx->height);
+    numBytes = avpicture_get_size(AV_PIX_FMT_RGB24, pCodecContext->width,
+                                  pCodecContext->height);
     buffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
 
     sws_ctx =
             sws_getContext
                     (
-                            pCodecCtx->width,
-                            pCodecCtx->height,
-                            pCodecCtx->pix_fmt,
-                            pCodecCtx->width,
-                            pCodecCtx->height,
+                            pCodecContext->width,
+                            pCodecContext->height,
+                            pCodecContext->pix_fmt,
+                            pCodecContext->width,
+                            pCodecContext->height,
                             AV_PIX_FMT_RGB24,
                             SWS_BILINEAR,
-                            NULL,
-                            NULL,
-                            NULL
+                            nullptr,
+                            nullptr,
+                            nullptr
                     );
 
     // Assign appropriate parts of buffer to image planes in pFrameRGB
     // Note that pFrameRGB is an AVFrame, but AVFrame is a superset
     // of AVPicture
     avpicture_fill((AVPicture *) pFrameRGB, buffer, AV_PIX_FMT_RGB24,
-                   pCodecCtx->width, pCodecCtx->height);
+                   pCodecContext->width, pCodecContext->height);
 
     // Read frames and save first five frames to disk
     i = 0;
-    while (av_read_frame(pFormatCtx, &packet) >= 0) {
+    while (av_read_frame(pFormatContext, &packet) >= 0) {
         // Is this a packet from the video stream?
         if (packet.stream_index == videoStream) {
             // Decode video frame
-            avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished,
+            avcodec_decode_video2(pCodecContext, pFrame, &frameFinished,
                                   &packet);
 
             // Did we get a video frame?
@@ -150,14 +164,14 @@ int main(int argc, char *argv[]) {
                                 (uint8_t const *const *) pFrame->data,
                                 pFrame->linesize,
                                 0,
-                                pCodecCtx->height,
+                                pCodecContext->height,
                                 pFrameRGB->data,
                                 pFrameRGB->linesize
                         );
 
                 // Save the frame to disk
                 if (++i <= 500)
-                    SaveFrame(pFrameRGB, pCodecCtx->width, pCodecCtx->height,
+                    SaveFrame(pFrameRGB, pCodecContext->width, pCodecContext->height,
                               i);
             }
         }
@@ -174,10 +188,10 @@ int main(int argc, char *argv[]) {
     av_free(pFrame);
 
     // Close the codec
-    avcodec_close(pCodecCtx);
+    avcodec_close(pCodecContext);
 
     // Close the video file
-    avformat_close_input(&pFormatCtx);
+    avformat_close_input(&pFormatContext);
 
     return 0;
 }
