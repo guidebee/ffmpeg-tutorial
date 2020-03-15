@@ -49,12 +49,11 @@ int main(int argc, char *argv[]) {
     AVCodec *pCodec = nullptr;
     AVFrame *pFrame = nullptr;
     AVFrame *pFrameRGB = nullptr;
-    AVPacket packet;
+
     int frameFinished;
     int numBytes;
     uint8_t *buffer = nullptr;
 
-    AVDictionary *optionsDict = nullptr;
     struct SwsContext *sws_ctx = nullptr;
 
     if (argc < 2) {
@@ -146,14 +145,20 @@ int main(int argc, char *argv[]) {
     avpicture_fill((AVPicture *) pFrameRGB, buffer, AV_PIX_FMT_RGB24,
                    pCodecContext->width, pCodecContext->height);
 
+    AVPacket *pPacket = av_packet_alloc();
+    if (!pPacket)
+    {
+        printf("failed to allocated memory for AVPacket");
+        return -1;
+    }
     // Read frames and save first five frames to disk
     i = 0;
-    while (av_read_frame(pFormatContext, &packet) >= 0) {
+    while (av_read_frame(pFormatContext, pPacket) >= 0) {
         // Is this a packet from the video stream?
-        if (packet.stream_index == videoStream) {
+        if (pPacket->stream_index == videoStream) {
             // Decode video frame
             avcodec_decode_video2(pCodecContext, pFrame, &frameFinished,
-                                  &packet);
+                                  pPacket);
 
             // Did we get a video frame?
             if (frameFinished) {
@@ -173,12 +178,17 @@ int main(int argc, char *argv[]) {
                 if (++i <= 500)
                     SaveFrame(pFrameRGB, pCodecContext->width, pCodecContext->height,
                               i);
+                else{
+                    break;
+                }
             }
         }
 
         // Free the packet that was allocated by av_read_frame
-        av_free_packet(&packet);
+        av_packet_unref(pPacket);
     }
+
+    av_packet_unref(pPacket);
 
     // Free the RGB image
     av_free(buffer);
