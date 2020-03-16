@@ -45,7 +45,7 @@ void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
 
 int main(int argc, char *argv[]) {
     AVFormatContext *pFormatContext = avformat_alloc_context();;
-    int i, videoStream;
+    int videoStream;
 
     AVCodec *pCodec = nullptr;
     AVFrame *pFrame = nullptr;
@@ -77,7 +77,7 @@ int main(int argc, char *argv[]) {
     // Find the first video stream
     videoStream = -1;
     AVCodecParameters *pCodecParameters = nullptr;
-    for (i = 0; i < pFormatContext->nb_streams; i++) {
+    for (int i = 0; i < pFormatContext->nb_streams; i++) {
         pCodecParameters = pFormatContext->streams[i]->codecpar;
         if (pCodecParameters->codec_type == AVMEDIA_TYPE_VIDEO) {
             videoStream = i;
@@ -152,7 +152,7 @@ int main(int argc, char *argv[]) {
         return -1;
     }
     // Read frames and save first five frames to disk
-    i = 0;
+
     while (av_read_frame(pFormatContext, pPacket) >= 0) {
         // Is this a packet from the video stream?
         if (pPacket->stream_index == videoStream) {
@@ -180,10 +180,11 @@ int main(int argc, char *argv[]) {
                         );
 
                 // Save the frame to disk
-                if (++i <= 500)
+                if (pCodecContext->frame_number <= 500) {
+
                     SaveFrame(pFrameRGB, pCodecContext->width, pCodecContext->height,
-                              i);
-                else {
+                              pCodecContext->frame_number);
+                } else {
                     break;
                 }
             }
