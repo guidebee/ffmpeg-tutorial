@@ -45,23 +45,10 @@ void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
 
 int main(int argc, char *argv[]) {
     AVFormatContext *pFormatContext = avformat_alloc_context();;
-    int videoStream;
-
-    AVCodec *pCodec = nullptr;
-    AVFrame *pFrame = nullptr;
-    AVFrame *pFrameRGB = nullptr;
-
-    int frameFinished;
-    int numBytes;
-    uint8_t *buffer = nullptr;
-
-    struct SwsContext *sws_ctx = nullptr;
-
     if (argc < 2) {
         printf("Please provide a movie file\n");
         return -1;
     }
-
 
     // Open video file
     if (avformat_open_input(&pFormatContext, argv[1], nullptr, nullptr) != 0)
@@ -75,7 +62,7 @@ int main(int argc, char *argv[]) {
     av_dump_format(pFormatContext, 0, argv[1], 0);
 
     // Find the first video stream
-    videoStream = -1;
+    int videoStream = -1;
     AVCodecParameters *pCodecParameters = nullptr;
     for (int i = 0; i < pFormatContext->nb_streams; i++) {
         pCodecParameters = pFormatContext->streams[i]->codecpar;
@@ -89,7 +76,7 @@ int main(int argc, char *argv[]) {
 
 
     // Find the decoder for the video stream
-    pCodec = avcodec_find_decoder(pCodecParameters->codec_id);
+    AVCodec * pCodec = avcodec_find_decoder(pCodecParameters->codec_id);
     if (pCodec == nullptr) {
         fprintf(stderr, "Unsupported codec!\n");
         return -1; // Codec not found
@@ -105,27 +92,25 @@ int main(int argc, char *argv[]) {
         return -1;
     }
 
-
     if (avcodec_open2(pCodecContext, pCodec, nullptr) < 0) {
         printf("failed to open codec through avcodec_open2");
         return -1;
     }
 
-
     // Allocate video frame
-    pFrame = av_frame_alloc();
+    AVFrame *pFrame = av_frame_alloc();
 
     // Allocate an AVFrame structure
-    pFrameRGB = av_frame_alloc();
+    AVFrame *pFrameRGB = av_frame_alloc();
     if (pFrameRGB == nullptr)
         return -1;
 
     // Determine required buffer size and allocate buffer
-    numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, pCodecContext->width,
+    int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, pCodecContext->width,
                                         pCodecContext->height, IMAGE_ALIGN);
-    buffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
+    uint8_t *buffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
 
-    sws_ctx =
+    struct SwsContext *sws_ctx =
             sws_getContext
                     (
                             pCodecContext->width,
@@ -158,7 +143,7 @@ int main(int argc, char *argv[]) {
         if (pPacket->stream_index == videoStream) {
             // Decode video frame
 
-            frameFinished = 0;
+            int frameFinished = 0;
             int ret = avcodec_receive_frame(pCodecContext, pFrame);
             if (ret == 0)
                 frameFinished = 1;
