@@ -18,7 +18,7 @@
 // format.
 
 #include "tutorial.hpp"
-
+#define IMAGE_ALIGN 1
 
 void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
     FILE *pFile;
@@ -120,8 +120,8 @@ int main(int argc, char *argv[]) {
         return -1;
 
     // Determine required buffer size and allocate buffer
-    numBytes = avpicture_get_size(AV_PIX_FMT_RGB24, pCodecContext->width,
-                                  pCodecContext->height);
+    numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, pCodecContext->width,
+                                  pCodecContext->height,IMAGE_ALIGN);
     buffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
 
     sws_ctx =
@@ -142,8 +142,8 @@ int main(int argc, char *argv[]) {
     // Assign appropriate parts of buffer to image planes in pFrameRGB
     // Note that pFrameRGB is an AVFrame, but AVFrame is a superset
     // of AVPicture
-    avpicture_fill((AVPicture *) pFrameRGB, buffer, AV_PIX_FMT_RGB24,
-                   pCodecContext->width, pCodecContext->height);
+    av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, buffer,AV_PIX_FMT_RGB24,
+                   pCodecContext->width, pCodecContext->height,IMAGE_ALIGN);
 
     AVPacket *pPacket = av_packet_alloc();
     if (!pPacket)
