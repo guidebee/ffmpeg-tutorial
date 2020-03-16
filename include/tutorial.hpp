@@ -11,8 +11,8 @@ extern "C" {
 #include <libavformat/avformat.h>
 #include <libswscale/swscale.h>
 #include <libavutil/imgutils.h>
-
 #include <cstdio>
+#define IMAGE_ALIGN 1
 
 #if defined (__cplusplus)
 }

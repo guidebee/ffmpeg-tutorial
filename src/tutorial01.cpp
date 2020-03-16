@@ -1,5 +1,5 @@
 // tutorial01.c
-//
+// This tutorial was modified by James Shen (james.shen@guidebee.com).
 // This tutorial was written by Stephen Dranger (dranger@gmail.com).
 //
 // Code based on a tutorial by Martin Bohme (boehme@inb.uni-luebeckREMOVETHIS.de)
@@ -12,44 +12,23 @@
 //
 // Run using
 //
-// tutorial01 myvideofile.mpg
+// tutorial01 myvideofile.mp4
 //
-// to write the first five frames from "myvideofile.mpg" to disk in PPM
+// to write the first 500 frames from "myvideofile.mp4" to disk in PPM
 // format.
 
 #include "tutorial.hpp"
 
-#define IMAGE_ALIGN 1
-
-void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
-    FILE *pFile;
-    char szFilename[32];
-    int y;
-
-    // Open file
-    sprintf(szFilename, "frame%d.ppm", iFrame);
-    pFile = fopen(szFilename, "wb");
-    if (pFile == NULL)
-        return;
-
-    // Write header
-    fprintf(pFile, "P6\n%d %d\n255\n", width, height);
-
-    // Write pixel data
-    for (y = 0; y < height; y++)
-        fwrite(pFrame->data[0] + y * pFrame->linesize[0], 1, width * 3, pFile);
-
-    // Close file
-    fclose(pFile);
-}
+static void save_frame(AVFrame *pFrame, int width, int height, int iFrame);
 
 int main(int argc, char *argv[]) {
-    AVFormatContext *pFormatContext = avformat_alloc_context();;
+
     if (argc < 2) {
         printf("Please provide a movie file\n");
         return -1;
     }
 
+    AVFormatContext *pFormatContext = avformat_alloc_context();
     // Open video file
     if (avformat_open_input(&pFormatContext, argv[1], nullptr, nullptr) != 0)
         return -1; // Couldn't open file
@@ -76,7 +55,7 @@ int main(int argc, char *argv[]) {
 
 
     // Find the decoder for the video stream
-    AVCodec * pCodec = avcodec_find_decoder(pCodecParameters->codec_id);
+    AVCodec *pCodec = avcodec_find_decoder(pCodecParameters->codec_id);
     if (pCodec == nullptr) {
         fprintf(stderr, "Unsupported codec!\n");
         return -1; // Codec not found
@@ -107,8 +86,8 @@ int main(int argc, char *argv[]) {
 
     // Determine required buffer size and allocate buffer
     int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, pCodecContext->width,
-                                        pCodecContext->height, IMAGE_ALIGN);
-    uint8_t *buffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
+                                            pCodecContext->height, IMAGE_ALIGN);
+    uint8_t  *buffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
 
     struct SwsContext *sws_ctx =
             sws_getContext
@@ -126,8 +105,6 @@ int main(int argc, char *argv[]) {
                     );
 
     // Assign appropriate parts of buffer to image planes in pFrameRGB
-    // Note that pFrameRGB is an AVFrame, but AVFrame is a superset
-    // of AVPicture
     av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, buffer, AV_PIX_FMT_RGB24,
                          pCodecContext->width, pCodecContext->height, IMAGE_ALIGN);
 
@@ -136,13 +113,14 @@ int main(int argc, char *argv[]) {
         printf("failed to allocated memory for AVPacket");
         return -1;
     }
-    // Read frames and save first five frames to disk
+
+    // Read frames and save first 500 frames to disk
 
     while (av_read_frame(pFormatContext, pPacket) >= 0) {
         // Is this a packet from the video stream?
         if (pPacket->stream_index == videoStream) {
-            // Decode video frame
 
+            // Decode video frame
             int frameFinished = 0;
             int ret = avcodec_receive_frame(pCodecContext, pFrame);
             if (ret == 0)
@@ -166,9 +144,8 @@ int main(int argc, char *argv[]) {
 
                 // Save the frame to disk
                 if (pCodecContext->frame_number <= 500) {
-
-                    SaveFrame(pFrameRGB, pCodecContext->width, pCodecContext->height,
-                              pCodecContext->frame_number);
+                    save_frame(pFrameRGB, pCodecContext->width, pCodecContext->height,
+                               pCodecContext->frame_number);
                 } else {
                     break;
                 }
@@ -195,4 +172,22 @@ int main(int argc, char *argv[]) {
     avformat_close_input(&pFormatContext);
 
     return 0;
+}
+
+static void save_frame(AVFrame *pFrame, int width, int height, int iFrame) {
+    FILE *pFile;
+    char szFilename[32];
+    int y;
+    // Open file
+    sprintf(szFilename, "frame%d.ppm", iFrame);
+    pFile = fopen(szFilename, "wb");
+    if (pFile == nullptr)
+        return;
+    // Write header
+    fprintf(pFile, "P6\n%d %d\n255\n", width, height);
+    // Write pixel data
+    for (y = 0; y < height; y++)
+        fwrite(pFrame->data[0] + y * pFrame->linesize[0], 1, width * 3, pFile);
+    // Close file
+    fclose(pFile);
 }
