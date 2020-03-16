@@ -19,7 +19,11 @@
 
 #include "tutorial.hpp"
 
-static void save_frame(AVFrame *pFrame, int width, int height, int iFrame);
+static void save_frame(AVFrame *pFrame,
+                       int width, int height, int iFrame);
+
+static int decode_frame(AVCodecContext *pCodecContext,
+                        AVFrame *pFrame, const AVPacket *pPacket);
 
 int main(int argc, char *argv[]) {
 
@@ -87,7 +91,7 @@ int main(int argc, char *argv[]) {
     // Determine required buffer size and allocate buffer
     int numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, pCodecContext->width,
                                             pCodecContext->height, IMAGE_ALIGN);
-    uint8_t  *buffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
+    uint8_t *buffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
 
     struct SwsContext *sws_ctx =
             sws_getContext
@@ -121,12 +125,7 @@ int main(int argc, char *argv[]) {
         if (pPacket->stream_index == videoStream) {
 
             // Decode video frame
-            int frameFinished = 0;
-            int ret = avcodec_receive_frame(pCodecContext, pFrame);
-            if (ret == 0)
-                frameFinished = 1;
-            if (ret == 0 || ret == AVERROR(EAGAIN))
-                avcodec_send_packet(pCodecContext, pPacket);
+            int frameFinished = decode_frame(pCodecContext, pFrame, pPacket);
 
             // Did we get a video frame?
             if (frameFinished) {
@@ -174,7 +173,20 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
-static void save_frame(AVFrame *pFrame, int width, int height, int iFrame) {
+static int decode_frame(AVCodecContext *pCodecContext,
+                        AVFrame *pFrame,
+                        const AVPacket *pPacket) {
+    int frameFinished = 0;
+    int ret = avcodec_receive_frame(pCodecContext, pFrame);
+    if (ret == 0)
+        frameFinished = 1;
+    if (ret == 0 || ret == AVERROR(EAGAIN))
+        avcodec_send_packet(pCodecContext, pPacket);
+    return frameFinished;
+}
+
+static void save_frame(AVFrame *pFrame,
+                       int width, int height, int iFrame) {
     FILE *pFile;
     char szFilename[32];
     int y;
