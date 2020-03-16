@@ -18,6 +18,7 @@
 // format.
 
 #include "tutorial.hpp"
+
 #define IMAGE_ALIGN 1
 
 void SaveFrame(AVFrame *pFrame, int width, int height, int iFrame) {
@@ -121,7 +122,7 @@ int main(int argc, char *argv[]) {
 
     // Determine required buffer size and allocate buffer
     numBytes = av_image_get_buffer_size(AV_PIX_FMT_RGB24, pCodecContext->width,
-                                  pCodecContext->height,IMAGE_ALIGN);
+                                        pCodecContext->height, IMAGE_ALIGN);
     buffer = (uint8_t *) av_malloc(numBytes * sizeof(uint8_t));
 
     sws_ctx =
@@ -142,12 +143,11 @@ int main(int argc, char *argv[]) {
     // Assign appropriate parts of buffer to image planes in pFrameRGB
     // Note that pFrameRGB is an AVFrame, but AVFrame is a superset
     // of AVPicture
-    av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, buffer,AV_PIX_FMT_RGB24,
-                   pCodecContext->width, pCodecContext->height,IMAGE_ALIGN);
+    av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, buffer, AV_PIX_FMT_RGB24,
+                         pCodecContext->width, pCodecContext->height, IMAGE_ALIGN);
 
     AVPacket *pPacket = av_packet_alloc();
-    if (!pPacket)
-    {
+    if (!pPacket) {
         printf("failed to allocated memory for AVPacket");
         return -1;
     }
@@ -157,8 +157,13 @@ int main(int argc, char *argv[]) {
         // Is this a packet from the video stream?
         if (pPacket->stream_index == videoStream) {
             // Decode video frame
-            avcodec_decode_video2(pCodecContext, pFrame, &frameFinished,
-                                  pPacket);
+
+            frameFinished = 0;
+            int ret = avcodec_receive_frame(pCodecContext, pFrame);
+            if (ret == 0)
+                frameFinished = 1;
+            if (ret == 0 || ret == AVERROR(EAGAIN))
+                avcodec_send_packet(pCodecContext, pPacket);
 
             // Did we get a video frame?
             if (frameFinished) {
@@ -178,7 +183,7 @@ int main(int argc, char *argv[]) {
                 if (++i <= 500)
                     SaveFrame(pFrameRGB, pCodecContext->width, pCodecContext->height,
                               i);
-                else{
+                else {
                     break;
                 }
             }
