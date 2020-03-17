@@ -10,7 +10,8 @@ project(ffmpeg_tutorial)
 
 function(TUTORIAL name)
     set(TUTORIAL_TARGET ${name})
-    add_executable(${TUTORIAL_TARGET} ${CMAKE_HOME_DIRECTORY}/src/${TUTORIAL_TARGET}.cpp)
+    add_executable(${TUTORIAL_TARGET} ${CMAKE_HOME_DIRECTORY}/src/${TUTORIAL_TARGET}.cpp
+            ${CMAKE_HOME_DIRECTORY}/src/common.cpp)
     target_link_libraries(${TUTORIAL_TARGET} PRIVATE FFmpeg)
     if (WIN32)
         install(TARGETS ${name}
