@@ -3,22 +3,14 @@
 
 
 int main(int argc, char *argv[]) {
-
-
-    AVFrame *pFrame = NULL;
-
-    int frameFinished;
-    struct SwsContext *sws_ctx = NULL;
+    AVFrame *pFrame = nullptr;
     SDL_Event event;
     SDL_Window *screen;
     SDL_Renderer *renderer;
     SDL_Texture *texture;
-    Uint8 *yPlane, *uPlane, *vPlane;
-    size_t yPlaneSz, uvPlaneSz;
-    int uvPitch;
 
     if (argc < 2) {
-        fprintf(stderr, "Usage: test <file>\n");
+        fprintf(stderr, "Usage: tutorial02 <file>\n");
         exit(1);
     }
 
@@ -93,9 +85,14 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    renderer = SDL_CreateRenderer(screen, -1, 0);
+    renderer = SDL_CreateRenderer(screen, -1, SDL_RENDERER_ACCELERATED);
     if (!renderer) {
         fprintf(stderr, "SDL: could not create renderer - exiting\n");
+        exit(1);
+    }
+    if (SDL_RenderSetLogicalSize(renderer, pCodecContext->width,
+                                 pCodecContext->height)) {
+        printf("Could not set renderer logical size: %s", SDL_GetError());
         exit(1);
     }
 
@@ -112,32 +109,13 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    // initialize SWS context for software scaling
-    sws_ctx = sws_getContext(pCodecContext->width, pCodecContext->height,
-                             pCodecContext->pix_fmt, pCodecContext->width, pCodecContext->height,
-                             AV_PIX_FMT_YUV420P,
-                             SWS_BILINEAR,
-                             NULL,
-                             NULL,
-                             NULL);
 
-    // set up YV12 pixel array (12 bits per pixel)
-    yPlaneSz = pCodecContext->width * pCodecContext->height;
-    uvPlaneSz = pCodecContext->width * pCodecContext->height / 4;
-    yPlane = (Uint8 *) malloc(yPlaneSz);
-    uPlane = (Uint8 *) malloc(uvPlaneSz);
-    vPlane = (Uint8 *) malloc(uvPlaneSz);
-    if (!yPlane || !uPlane || !vPlane) {
-        fprintf(stderr, "Could not allocate pixel buffers - exiting\n");
-        exit(1);
-    }
-
-    uvPitch = pCodecContext->width / 2;
     AVPacket *pPacket = av_packet_alloc();
     if (!pPacket) {
         printf("failed to allocated memory for AVPacket");
         return -1;
     }
+    bool centered = false;
     while (av_read_frame(pFormatContext, pPacket) >= 0) {
         // Is this a packet from the video stream?
         if (pPacket->stream_index == videoStream) {
@@ -147,39 +125,22 @@ int main(int argc, char *argv[]) {
 
             // Did we get a video frame?
             if (frameFinished) {
-                AVPicture pict;
-                pict.data[0] = yPlane;
-                pict.data[1] = uPlane;
-                pict.data[2] = vPlane;
-                pict.linesize[0] = pCodecContext->width;
-                pict.linesize[1] = uvPitch;
-                pict.linesize[2] = uvPitch;
-
-                // Convert the image into YUV format that SDL uses
-                sws_scale(sws_ctx, (uint8_t const *const *) pFrame->data,
-                          pFrame->linesize, 0, pCodecContext->height, pict.data,
-                          pict.linesize);
-
-                SDL_UpdateYUVTexture(
-                        texture,
-                        NULL,
-                        yPlane,
-                        pCodecContext->width,
-                        uPlane,
-                        uvPitch,
-                        vPlane,
-                        uvPitch
-                );
+                SDL_UpdateYUVTexture(texture, NULL,
+                                     pFrame->data[0], pFrame->linesize[0],
+                                     pFrame->data[1], pFrame->linesize[1],
+                                     pFrame->data[2], pFrame->linesize[2]);
 
                 SDL_RenderClear(renderer);
-                SDL_RenderCopy(renderer, texture, NULL, NULL);
+                SDL_RenderCopy(renderer, texture, nullptr, nullptr);
                 SDL_RenderPresent(renderer);
+
+                if (!centered) {
+                    centered = true;
+                    SDL_SetWindowPosition(screen, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+                }
 
             }
         }
-
-        // Free the packet that was allocated by av_read_frame
-        av_packet_unref(pPacket);
         SDL_PollEvent(&event);
         switch (event.type) {
             case SDL_QUIT:
@@ -188,19 +149,21 @@ int main(int argc, char *argv[]) {
                 SDL_DestroyWindow(screen);
                 SDL_Quit();
                 exit(0);
-                break;
+
             default:
                 break;
         }
+
         // Free the packet that was allocated by av_read_frame
         av_packet_unref(pPacket);
+
     }
 
+    // Free the packet that was allocated by av_read_frame
+    av_packet_unref(pPacket);
     // Free the YUV frame
     av_frame_free(&pFrame);
-    free(yPlane);
-    free(uPlane);
-    free(vPlane);
+
 
     // Close the codec
     avcodec_close(pCodecContext);
