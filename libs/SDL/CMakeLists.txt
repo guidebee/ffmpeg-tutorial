@@ -14,5 +14,4 @@ target_include_directories(SDL INTERFACE
         ${SDL_INCLUDE_DIR})
 
 target_link_libraries(SDL INTERFACE
-        ${SDL_LIBRARY}
-        )
+        ${SDL_LIBRARY})

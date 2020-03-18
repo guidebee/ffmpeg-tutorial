@@ -3,14 +3,10 @@
 
 
 int main(int argc, char *argv[]) {
-    AVFormatContext *pFormatCtx = NULL;
-    int videoStream;
-    unsigned i;
-    AVCodecContext *pCodecCtxOrig = NULL;
-    AVCodecContext *pCodecCtx = NULL;
-    AVCodec *pCodec = NULL;
+
+
     AVFrame *pFrame = NULL;
-    AVPacket packet;
+
     int frameFinished;
     struct SwsContext *sws_ctx = NULL;
     SDL_Event event;
@@ -25,54 +21,59 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Usage: test <file>\n");
         exit(1);
     }
-    // Register all formats and codecs
-    av_register_all();
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
         fprintf(stderr, "Could not initialize SDL - %s\n", SDL_GetError());
         exit(1);
     }
 
+    AVFormatContext *pFormatContext = avformat_alloc_context();
     // Open video file
-    if (avformat_open_input(&pFormatCtx, argv[1], NULL, NULL) != 0)
+    if (avformat_open_input(&pFormatContext, argv[1], nullptr, nullptr) != 0)
         return -1; // Couldn't open file
 
     // Retrieve stream information
-    if (avformat_find_stream_info(pFormatCtx, NULL) < 0)
+    if (avformat_find_stream_info(pFormatContext, NULL) < 0)
         return -1; // Couldn't find stream information
 
     // Dump information about file onto standard error
-    av_dump_format(pFormatCtx, 0, argv[1], 0);
+    av_dump_format(pFormatContext, 0, argv[1], 0);
 
     // Find the first video stream
-    videoStream = -1;
-    for (i = 0; i < pFormatCtx->nb_streams; i++)
-        if (pFormatCtx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO) {
+    int videoStream = -1;
+    AVCodecParameters *pCodecParameters = nullptr;
+    for (int i = 0; i < pFormatContext->nb_streams; i++) {
+        pCodecParameters = pFormatContext->streams[i]->codecpar;
+        if (pCodecParameters->codec_type == AVMEDIA_TYPE_VIDEO) {
             videoStream = i;
             break;
         }
+    }
     if (videoStream == -1)
         return -1; // Didn't find a video stream
 
-    // Get a pointer to the codec context for the video stream
-    pCodecCtxOrig = pFormatCtx->streams[videoStream]->codec;
     // Find the decoder for the video stream
-    pCodec = avcodec_find_decoder(pCodecCtxOrig->codec_id);
-    if (pCodec == NULL) {
+    AVCodec *pCodec = avcodec_find_decoder(pCodecParameters->codec_id);
+    if (pCodec == nullptr) {
         fprintf(stderr, "Unsupported codec!\n");
         return -1; // Codec not found
     }
-
-    // Copy context
-    pCodecCtx = avcodec_alloc_context3(pCodec);
-    if (avcodec_copy_context(pCodecCtx, pCodecCtxOrig) != 0) {
-        fprintf(stderr, "Couldn't copy codec context");
-        return -1; // Error copying codec context
+    AVCodecContext *pCodecContext = avcodec_alloc_context3(pCodec);
+    if (!pCodecContext) {
+        printf("failed to allocated memory for AVCodecContext");
+        return -1;
     }
 
-    // Open codec
-    if (avcodec_open2(pCodecCtx, pCodec, NULL) < 0)
-        return -1; // Could not open codec
+    if (avcodec_parameters_to_context(pCodecContext, pCodecParameters) < 0) {
+        printf("failed to copy codec params to codec context");
+        return -1;
+    }
+
+    if (avcodec_open2(pCodecContext, pCodec, nullptr) < 0) {
+        printf("failed to open codec through avcodec_open2");
+        return -1;
+    }
+
 
     // Allocate video frame
     pFrame = av_frame_alloc();
@@ -82,8 +83,8 @@ int main(int argc, char *argv[]) {
             "FFmpeg Tutorial",
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
-            pCodecCtx->width,
-            pCodecCtx->height,
+            pCodecContext->width,
+            pCodecContext->height,
             0
     );
 
@@ -103,8 +104,8 @@ int main(int argc, char *argv[]) {
             renderer,
             SDL_PIXELFORMAT_YV12,
             SDL_TEXTUREACCESS_STREAMING,
-            pCodecCtx->width,
-            pCodecCtx->height
+            pCodecContext->width,
+            pCodecContext->height
     );
     if (!texture) {
         fprintf(stderr, "SDL: could not create texture - exiting\n");
@@ -112,8 +113,8 @@ int main(int argc, char *argv[]) {
     }
 
     // initialize SWS context for software scaling
-    sws_ctx = sws_getContext(pCodecCtx->width, pCodecCtx->height,
-                             pCodecCtx->pix_fmt, pCodecCtx->width, pCodecCtx->height,
+    sws_ctx = sws_getContext(pCodecContext->width, pCodecContext->height,
+                             pCodecContext->pix_fmt, pCodecContext->width, pCodecContext->height,
                              AV_PIX_FMT_YUV420P,
                              SWS_BILINEAR,
                              NULL,
@@ -121,8 +122,8 @@ int main(int argc, char *argv[]) {
                              NULL);
 
     // set up YV12 pixel array (12 bits per pixel)
-    yPlaneSz = pCodecCtx->width * pCodecCtx->height;
-    uvPlaneSz = pCodecCtx->width * pCodecCtx->height / 4;
+    yPlaneSz = pCodecContext->width * pCodecContext->height;
+    uvPlaneSz = pCodecContext->width * pCodecContext->height / 4;
     yPlane = (Uint8 *) malloc(yPlaneSz);
     uPlane = (Uint8 *) malloc(uvPlaneSz);
     vPlane = (Uint8 *) malloc(uvPlaneSz);
@@ -131,12 +132,18 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    uvPitch = pCodecCtx->width / 2;
-    while (av_read_frame(pFormatCtx, &packet) >= 0) {
+    uvPitch = pCodecContext->width / 2;
+    AVPacket *pPacket = av_packet_alloc();
+    if (!pPacket) {
+        printf("failed to allocated memory for AVPacket");
+        return -1;
+    }
+    while (av_read_frame(pFormatContext, pPacket) >= 0) {
         // Is this a packet from the video stream?
-        if (packet.stream_index == videoStream) {
+        if (pPacket->stream_index == videoStream) {
             // Decode video frame
-            avcodec_decode_video2(pCodecCtx, pFrame, &frameFinished, &packet);
+
+            int frameFinished = decode_frame(pCodecContext, pFrame, pPacket);
 
             // Did we get a video frame?
             if (frameFinished) {
@@ -144,20 +151,20 @@ int main(int argc, char *argv[]) {
                 pict.data[0] = yPlane;
                 pict.data[1] = uPlane;
                 pict.data[2] = vPlane;
-                pict.linesize[0] = pCodecCtx->width;
+                pict.linesize[0] = pCodecContext->width;
                 pict.linesize[1] = uvPitch;
                 pict.linesize[2] = uvPitch;
 
                 // Convert the image into YUV format that SDL uses
                 sws_scale(sws_ctx, (uint8_t const *const *) pFrame->data,
-                          pFrame->linesize, 0, pCodecCtx->height, pict.data,
+                          pFrame->linesize, 0, pCodecContext->height, pict.data,
                           pict.linesize);
 
                 SDL_UpdateYUVTexture(
                         texture,
                         NULL,
                         yPlane,
-                        pCodecCtx->width,
+                        pCodecContext->width,
                         uPlane,
                         uvPitch,
                         vPlane,
@@ -172,7 +179,7 @@ int main(int argc, char *argv[]) {
         }
 
         // Free the packet that was allocated by av_read_frame
-        av_free_packet(&packet);
+        av_packet_unref(pPacket);
         SDL_PollEvent(&event);
         switch (event.type) {
             case SDL_QUIT:
@@ -185,7 +192,8 @@ int main(int argc, char *argv[]) {
             default:
                 break;
         }
-
+        // Free the packet that was allocated by av_read_frame
+        av_packet_unref(pPacket);
     }
 
     // Free the YUV frame
@@ -195,11 +203,11 @@ int main(int argc, char *argv[]) {
     free(vPlane);
 
     // Close the codec
-    avcodec_close(pCodecCtx);
-    avcodec_close(pCodecCtxOrig);
+    avcodec_close(pCodecContext);
+
 
     // Close the video file
-    avformat_close_input(&pFormatCtx);
+    avformat_close_input(&pFormatContext);
 
     return 0;
 }
