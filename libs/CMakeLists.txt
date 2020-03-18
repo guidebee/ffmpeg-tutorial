@@ -2,3 +2,4 @@ cmake_minimum_required(VERSION 3.12)
 project(libs)
 
 add_subdirectory(FFmpeg)
+add_subdirectory(SDL)

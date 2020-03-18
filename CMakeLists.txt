@@ -7,12 +7,16 @@ endif ()
 set(VCPKG_TARGET_TRIPLET $ENV{VCPKG_DEFAULT_TRIPLET} CACHE INTERNAL "" FORCE)
 
 project(ffmpeg_tutorial)
+find_package(SDL2 CONFIG REQUIRED)
+
 
 function(TUTORIAL name)
     set(TUTORIAL_TARGET ${name})
     add_executable(${TUTORIAL_TARGET} ${CMAKE_HOME_DIRECTORY}/src/${TUTORIAL_TARGET}.cpp
             ${CMAKE_HOME_DIRECTORY}/src/common.cpp)
     target_link_libraries(${TUTORIAL_TARGET} PRIVATE FFmpeg)
+    target_link_libraries(${TUTORIAL_TARGET} PRIVATE SDL)
+
     if (WIN32)
         install(TARGETS ${name}
                 RUNTIME DESTINATION ${CMAKE_BINARY_DIR})
@@ -20,7 +24,7 @@ function(TUTORIAL name)
 
 endfunction(TUTORIAL)
 
-include_directories("include" )
+include_directories("include")
 add_subdirectory(libs)
 add_subdirectory(apps)
 add_subdirectory(docs)
