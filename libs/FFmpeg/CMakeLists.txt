@@ -1,9 +1,6 @@
 cmake_minimum_required(VERSION 3.12)
 project(FFmpeg)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-D__STDC_CONSTANT_MACROS")
-
 find_path(AVCODEC_INCLUDE_DIR libavcodec/avcodec.h)
 find_library(AVCODEC_LIBRARY avcodec)
 

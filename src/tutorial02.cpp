@@ -1,6 +1,6 @@
 #include "tutorial.hpp"
 #include <SDL2/SDL.h>
-
+#include <opencv2/opencv.hpp>
 
 int main(int argc, char *argv[]) {
     AVFrame *pFrame = nullptr;
