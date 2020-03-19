@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER)) {
+    if (SDL_Init(SDL_INIT_EVERYTHING)) {
         fprintf(stderr, "Could not initialize SDL - %s\n", SDL_GetError());
         exit(1);
     }
@@ -28,8 +28,6 @@ int main(int argc, char *argv[]) {
     if (avformat_find_stream_info(pFormatContext, NULL) < 0)
         return -1; // Couldn't find stream information
 
-    // Dump information about file onto standard error
-    av_dump_format(pFormatContext, 0, argv[1], 0);
 
     // Find the first video stream
     int videoStream = -1;
@@ -72,7 +70,7 @@ int main(int argc, char *argv[]) {
 
     // Make a screen to put our video
     screen = SDL_CreateWindow(
-            "FFmpeg Tutorial",
+            "FFmpeg Tutorial02",
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
             pCodecContext->width,
@@ -134,7 +132,7 @@ int main(int argc, char *argv[]) {
                 SDL_RenderCopy(renderer, texture, nullptr, nullptr);
                 SDL_RenderPresent(renderer);
 
-                if (!centered) {
+                if (!centered) { //a bug? have to move the windows a bit to display full size
                     centered = true;
                     SDL_SetWindowPosition(screen, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
                 }
@@ -171,6 +169,11 @@ int main(int argc, char *argv[]) {
 
     // Close the video file
     avformat_close_input(&pFormatContext);
+
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(renderer);
+    SDL_DestroyWindow(screen);
+    SDL_Quit();
 
     return 0;
 }
