@@ -132,7 +132,7 @@ int main(int argc, char *argv[]) {
                 SDL_RenderCopy(renderer, texture, nullptr, nullptr);
                 SDL_RenderPresent(renderer);
 
-                if (!centered) { //a bug? have to move the windows a bit to display full size
+                if (!centered) { //a bug of SDL_RenderCopy? have to move the windows a bit to display full size
                     centered = true;
                     SDL_SetWindowPosition(screen, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
                 }
