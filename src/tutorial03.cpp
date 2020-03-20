@@ -1,6 +1,6 @@
 #include "tutorial.hpp"
 #include <SDL2/SDL.h>
-
+#include <opencv2/opencv.hpp>
 
 int main(int argc, char *argv[]) {
     AVFrame *pFrame = nullptr;
@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
     SDL_Texture *texture;
 
     if (argc < 2) {
-        fprintf(stderr, "Usage: tutorial02 <file>\n");
+        fprintf(stderr, "Usage: tutorial03 <file>\n");
         exit(1);
     }
 
@@ -70,7 +70,7 @@ int main(int argc, char *argv[]) {
 
     // Make a screen to put our video
     screen = SDL_CreateWindow(
-            "FFmpeg Tutorial02",
+            "FFmpeg tutorial03",
             SDL_WINDOWPOS_UNDEFINED,
             SDL_WINDOWPOS_UNDEFINED,
             pCodecContext->width,
