@@ -1,7 +1,7 @@
 # ffmpeg-tutorial
 ffmpeg-tutorial
 
-#How to compile 
+# How to compile 
  Download [vcpkg](https://github.com/microsoft/vcpkg)
  
  install SDL2, FFmpeg and Opencv
@@ -32,8 +32,12 @@ ffmpeg-tutorial
   ninja
  ```
 
+# tutorials
+  tutorial01 -- basic usage of ffmpeg
+  tutorial02 -- use SDL2 to display video
+  tutorial03 -- use opencv to process video
 
-#Video 
+# Video 
 
 [![OpenCv ](http://img.youtube.com/vi/XgI5yTtnNPQ/0.jpg)](http://www.youtube.com/watch?v=XgI5yTtnNPQ)
 
