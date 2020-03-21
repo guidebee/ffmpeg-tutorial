@@ -33,9 +33,9 @@ ffmpeg-tutorial
  ```
 
 # tutorials
-  tutorial01 -- basic usage of ffmpeg
-  tutorial02 -- use SDL2 to display video
-  tutorial03 -- use opencv to process video
+  * tutorial01 -- basic usage of ffmpeg
+  * tutorial02 -- use SDL2 to display video
+  * tutorial03 -- use opencv to process video
 
 # Video 
 
